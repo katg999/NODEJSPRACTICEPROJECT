@@ -14,7 +14,6 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
   const users = await User.find();
 
   //SEND A RESPONSE
-
   res.status(200).json({
     status: 'success',
     results: users.length,
@@ -54,6 +53,15 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.deleteMe = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.user.id, {
+    active: false,
+  });
+  res.status(204).json({
+    status: 'success',
+    data: null,
+  });
+});
 exports.getUser = (req, res) => {
   res.status(500).json({
     status: 'error',

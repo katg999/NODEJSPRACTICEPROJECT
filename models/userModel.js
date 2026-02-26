@@ -3,151 +3,107 @@ const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const SALT_ROUNDS = 12;
-const PASSWORD_RESET_EXPIRES_MINUTES = 10;
-
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Please tell us your name!'],
-      trim: true,
-      maxlength: [50, 'Name cannot exceed 50 characters'],
-    },
-
-    email: {
-      type: String,
-      required: [true, 'Please provide your email!'],
-      unique: true,
-      lowercase: true,
-      trim: true,
-      validate: {
-        validator: validator.isEmail,
-        message: 'Please provide a valid email',
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Please tell us your name!'],
+  },
+  email: {
+    type: String,
+    required: [true, 'Please provide your email!'],
+    unique: true,
+    lowercase: true,
+    validate: [validator.isEmail, 'Please provide a valid email'],
+  },
+  photo: String,
+  role: {
+    type: String,
+    enum: ['user', 'guide', 'lead-guide', 'admin'],
+    default: 'user',
+  },
+  password: {
+    type: String,
+    required: [true, 'Please provide a password'],
+    minlength: 8,
+    select: false,
+  },
+  passwordConfirm: {
+    type: String,
+    required: [true, 'Please confirm your password'],
+    validate: {
+      //this only works on SAVE and CREATE!!! not on UPDATE
+      validator: function (el) {
+        return el === this.password;
       },
-    },
-
-    photo: {
-      type: String,
-      default: 'default.jpg',
-    },
-
-    role: {
-      type: String,
-      enum: ['user', 'guide', 'lead-guide', 'admin'],
-      default: 'user',
-    },
-
-    password: {
-      type: String,
-      required: [true, 'Please provide a password'],
-      minlength: 8,
-      select: false,
-    },
-
-    passwordConfirm: {
-      type: String,
-      required: [true, 'Please confirm your password'],
-      validate: {
-        validator: function (el) {
-          return el === this.password;
-        },
-        message: 'Passwords are not the same!',
-      },
-    },
-
-    passwordChangedAt: Date,
-
-    passwordResetToken: String,
-
-    passwordResetExpires: Date,
-
-    active: {
-      type: Boolean,
-      default: true,
-      select: false,
+      message: 'Passwords are not the same!',
     },
   },
-  {
-    timestamps: true, // adds createdAt & updatedAt automatically
+  passwordChangedAt: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
   },
-);
+});
 
-// ===============================
-// INDEXES
-// ===============================
-userSchema.index({ email: 1 });
-
-// ===============================
-// DOCUMENT MIDDLEWARE
-// ===============================
-
-// Hash password before saving
 userSchema.pre('save', async function (next) {
+  // Only run this function if password was actually modified
   if (!this.isModified('password')) return next();
 
-  this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
-  this.passwordConfirm = undefined;
+  // Hash the password with cost of 12
+  this.password = await bcrypt.hash(this.password, 16);
 
+  // Delete passwordConfirm field
+  this.passwordConfirm = undefined;
   next();
 });
 
-// Set passwordChangedAt
 userSchema.pre('save', function (next) {
   if (!this.isModified('password') || this.isNew) return next();
-
   this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
-// ===============================
-// QUERY MIDDLEWARE
-// ===============================
-
-// Automatically filter inactive users
-userSchema.pre(/^find/, function (next) {
-  this.where({ active: { $ne: false } });
-  next();
-});
-
-// ===============================
-// INSTANCE METHODS
-// ===============================
-
-// Compare passwords
 userSchema.methods.correctPassword = async function (
   candidatePassword,
   userPassword,
 ) {
-  return bcrypt.compare(candidatePassword, userPassword);
+  return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-// Check if password was changed after JWT was issued
+userSchema.pre(/^find/, function (next) {
+  // THis points to the current query
+  this.find({ active: { $ne: false } });
+  next();
+});
+
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
-  if (!this.passwordChangedAt) return false;
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10,
+    );
 
-  const changedTimestamp = parseInt(
-    this.passwordChangedAt.getTime() / 1000,
-    10,
-  );
+    return JWTTimestamp < changedTimestamp; // 100 < 200
+  }
 
-  return JWTTimestamp < changedTimestamp;
+  //False means not changed
+  return false;
 };
 
-// Generate password reset token
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
-
   this.passwordResetToken = crypto
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
 
-  this.passwordResetExpires =
-    Date.now() + PASSWORD_RESET_EXPIRES_MINUTES * 60 * 1000;
+  console.log({ resetToken }, this.passwordResetToken);
 
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
   return resetToken;
 };
-
 const User = mongoose.model('User', userSchema);
 module.exports = User;

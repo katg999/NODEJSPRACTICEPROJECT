@@ -12,7 +12,7 @@ const DB = process.env.DATABASE.replace(
 
 //READ JSON FILE
 const tours = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'tours-simple.json'), 'utf-8'),
+  fs.readFileSync(path.join(__dirname, 'tours.json'), 'utf-8'),
 );
 
 //IMPORT DATA INTO DB

@@ -133,6 +133,13 @@ tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
 });
 
+//This is virtual populate: we want to populate reviews on the tour, but we don't want to store the reviews on the tour document, because that would be an array that grows infinitely and we don't want that. So instead we use virtual populate, which allows us to populate the reviews on the fly whenever we need them, without actually storing them on the tour document. We just tell Mongoose how to find the reviews that belong to a tour, and then we can populate them whenever we want.
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour',
+  localField: '_id',
+});
+
 //DOCUMENT MIDDLEWARE: runs before .save() and .create()
 tourSchema.pre('save', function (next) {
   this.slug = slugify(this.name, { lower: true });

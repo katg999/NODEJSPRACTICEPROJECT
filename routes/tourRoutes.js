@@ -3,6 +3,11 @@ const tourController = require('./../controllers/tourController');
 const authController = require('./../controllers/authController');
 const router = express.Router();
 //router.param('id', tourController.checkID);
+//const reviewController = require('./../controllers/reviewController');
+const reviewRouter = require('./../routes/reviewRoutes');
+
+//POST /tour/234fad4/reviews. - Nested Route
+router.use('/:tourId/reviews', reviewRouter); //This is a middleware that will be used for all routes that start with /:tourId/reviews, so it will be used for both GET and POST requests to /:tourId/reviews, and it will be used for all routes that start with /:tourId/reviews, so it will be used for both GET and POST requests to /:tourId/reviews, and it will be used for all routes that start with /:tourId/reviews, so it will be used for both GET and POST requests to /:tourId/reviews, and it will be used for all routes that start with /:tourId/reviews, so it will be used for both GET and POST requests to /:tourId/reviews, and it will be used for all routes that start with /:tourId/reviews, so it will be used for both GET and POST requests to /:
 
 router
   .route('/top-5-cheap')

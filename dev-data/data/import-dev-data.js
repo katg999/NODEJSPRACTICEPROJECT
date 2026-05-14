@@ -28,9 +28,8 @@ const reviews = JSON.parse(
 const importData = async () => {
   try {
     await Tour.create(tours);
-    await User.create(users, { validateBeforeSave: false });
+    await User.insertMany(users, { validate: false });
     await Review.create(reviews);
-
     console.log('Data successfully loaded');
   } catch (err) {
     console.log(err);
@@ -57,6 +56,7 @@ mongoose
     useNewUrlParser: true,
     useCreateIndex: true,
     useFindAndModify: false,
+    useUnifiedTopology: true,
   })
   .then(() => {
     console.log('DB connection successful');

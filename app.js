@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const path = require('path');
 const morgan = require('morgan');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
@@ -11,9 +12,14 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const reviewRouter = require('./routes/reviewRoutes');
+const viewRouter = require('./routes/viewRoutes');
 
-//MIDDLEQARE
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views'));
 
+//GLOBAL MIDDLEWARE
+//Serving Static Files
+app.use(express.static(path.join(__dirname, 'public')));
 //Set security HTTP HEADERS
 app.use(helmet());
 
@@ -53,8 +59,6 @@ app.use(
   }),
 );
 
-app.use(express.static(`${__dirname}/public`));
-
 //Should defined as top level code
 // app.use((req, res, next) => {
 //   console.log('Hello from the middleware 👋');
@@ -73,6 +77,8 @@ app.use((req, res, next) => {
 //app.delete('/api/v1/tours/:id', deleteTour);
 
 //mounting our routers
+
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);

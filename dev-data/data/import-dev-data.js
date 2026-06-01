@@ -2,6 +2,8 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
+const User = require('./../../models/userModel');
+const Review = require('./../../models/reviewModel');
 const Tour = require('./../../models/tourModel');
 
 dotenv.config({ path: path.join(__dirname, '../../config.env') });
@@ -11,14 +13,23 @@ const DB = process.env.DATABASE.replace(
 );
 
 //READ JSON FILE
+const users = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'users.json'), 'utf-8'),
+);
 const tours = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'tours-simple.json'), 'utf-8'),
+  fs.readFileSync(path.join(__dirname, 'tours.json'), 'utf-8'),
+);
+
+const reviews = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'reviews.json'), 'utf-8'),
 );
 
 //IMPORT DATA INTO DB
 const importData = async () => {
   try {
     await Tour.create(tours);
+    await User.insertMany(users, { validate: false });
+    await Review.create(reviews);
     console.log('Data successfully loaded');
   } catch (err) {
     console.log(err);
@@ -29,7 +40,9 @@ const importData = async () => {
 //DELETE ALL DATA FROM COLLECTION
 const deleteData = async () => {
   try {
+    await User.deleteMany();
     await Tour.deleteMany();
+    await Review.deleteMany();
     console.log('Data deleted successfully');
   } catch (err) {
     console.log(err);
@@ -43,6 +56,7 @@ mongoose
     useNewUrlParser: true,
     useCreateIndex: true,
     useFindAndModify: false,
+    useUnifiedTopology: true,
   })
   .then(() => {
     console.log('DB connection successful');

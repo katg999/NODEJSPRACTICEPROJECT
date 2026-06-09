@@ -6,18 +6,30 @@ export const updateSettings = async (data, type) => {
   try {
     const url =
       type === 'password'
-        ? 'http://localhost:3001/api/v1/users/updateMyPassword'
-        : 'http://localhost:3001/api/v1/users/updateMe';
+        ? '/api/v1/users/updateMyPassword'
+        : '/api/v1/users/updateMe';
 
-    const res = await axios({
-      method: 'PATCH',
-      url,
-      data,
-    });
-    if (res.data.status === 'success') {
-      showAlert('success', ` ${type.toUpperCase()} updated Successfully`);
+    let res;
+    if (type === 'data') {
+      // Use fetch for FormData to avoid axios serialization issues
+      const response = await fetch(url, {
+        method: 'PATCH',
+        body: data, // FormData sent natively
+      });
+      res = await response.json();
+    } else {
+      const response = await axios({
+        method: 'PATCH',
+        url,
+        data,
+      });
+      res = response.data;
+    }
+
+    if (res.status === 'success') {
+      showAlert('success', `${type.toUpperCase()} updated successfully!`);
     }
   } catch (err) {
-    showAlert('error', err.response.data.message);
+    showAlert('error', err.response?.data?.message || 'Something went wrong');
   }
 };
